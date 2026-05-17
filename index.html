@@ -1,0 +1,1364 @@
+<!doctype html>
+<html lang="th" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yeon Stock Checker</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Noto+Sans+Myanmar:wght@400;500;600&display=swap');
+    html, body { height: 100%; font-family: 'Prompt', sans-serif; }
+    * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    .unit-select { background: white; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 8px 12px; font-size: 14px; transition: all 0.2s ease; }
+    .unit-select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+    .quantity-input { background: white; border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; font-size: 15px; transition: all 0.2s ease; }
+    .quantity-input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+    .slide-in { animation: slideIn 0.3s ease-out; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.4s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .category-btn { transition: all 0.3s ease; border: 2px solid transparent; }
+    .category-btn.active { transform: scale(1.02); }
+    .loading-spinner { width: 16px; height: 16px; border: 2px solid rgba(255, 255, 255, 0.3); border-top-color: white; border-radius: 50%; animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .item-card { transition: all 0.2s ease; border: 1px solid #f0f0f0; }
+    .item-card:hover { border-color: #e5e7eb; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); }
+    .summary-tab-btn { background: white; color: #6b7280; border: 2px solid #e5e7eb; }
+    .summary-tab-btn.active { background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%); color: white; border-color: #a855f7; }
+    .summary-tab-btn:hover:not(.active) { border-color: #a855f7; }
+    tbody tr:hover { background-color: #f9f5ff; }
+    body { box-sizing: border-box; }
+  </style>
+ </head>
+ <body class="h-full bg-gradient-to-br from-blue-50 to-indigo-50 overflow-hidden">
+  <div id="app" class="h-full w-full overflow-auto bg-gradient-to-br from-blue-50 to-indigo-50">
+   <header class="sticky top-0 z-50 bg-white shadow-sm border-b border-gray-100">
+    <div class="flex items-center justify-between px-6 py-4">
+     <div class="flex items-center gap-3">
+      <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+       <i data-lucide="package-2" class="w-6 h-6 text-white"></i>
+      </div>
+      <div class="flex flex-col">
+       <h1 id="app-title" class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Yeon Stock Checker</h1>
+       <div class="flex items-center gap-2 text-xs text-gray-500 mt-0.5"><i data-lucide="calendar" class="w-3 h-3"></i> <span id="date-display">-</span> <span class="mx-1">|</span> <i data-lucide="clock" class="w-3 h-3"></i> <span id="time-display">-</span>
+       </div>
+      </div>
+     </div>
+     <div class="flex items-center gap-3">
+      <button id="history-btn" class="flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors font-medium"> <i data-lucide="history" class="w-4 h-4"></i> <span id="history-label">ประวัติ</span> </button>
+      <div class="relative group">
+       <button class="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"> <i data-lucide="globe" class="w-4 h-4"></i> <span id="lang-label">ไทย</span> </button>
+       <div class="absolute right-0 mt-2 w-40 bg-white shadow-lg rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+        <button onclick="setLanguage('th')" class="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors">🇹🇭 ไทย</button> <button onclick="setLanguage('en')" class="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors">🇬🇧 English</button> <button onclick="setLanguage('my')" class="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors">🇲🇲 မြန်မာ</button> <button onclick="setLanguage('ko')" class="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors">🇰🇷 한국어</button>
+       </div>
+      </div>
+     </div>
+    </div>
+   </header>
+   <div id="content" class="flex-1 overflow-auto">
+    <div id="screen-name" class="h-full flex items-center justify-center px-6 fade-in">
+     <div class="w-full max-w-md">
+      <div class="bg-white rounded-2xl shadow-lg p-8 space-y-6">
+       <div class="text-center space-y-2">
+        <div class="w-16 h-16 mx-auto bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center">
+         <i data-lucide="user-check" class="w-8 h-8 text-white"></i>
+        </div>
+        <h2 id="checker-name-title" class="text-2xl font-bold text-gray-900">ลงชื่อผู้เช็ค</h2>
+        <p id="checker-name-desc" class="text-gray-500">กรุณากรอกชื่อของคุณ</p>
+       </div><input id="checker-name-input" type="text" placeholder="ชื่อ" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:bg-blue-50 transition-all text-center font-medium"> <button id="start-btn" onclick="startChecking()" class="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2"> <span id="start-btn-text">เริ่มเช็ค</span> <i data-lucide="arrow-right" class="w-5 h-5"></i> </button>
+      </div>
+     </div>
+    </div>
+    <div id="screen-mode" class="hidden h-full flex items-center justify-center px-6 py-8 fade-in">
+     <div class="w-full max-w-4xl">
+      <div class="space-y-6">
+       <div class="text-center space-y-2">
+        <h2 id="mode-title" class="text-3xl font-bold text-gray-900">เลือกโหมด</h2>
+        <p id="mode-desc" class="text-gray-500">เลือกว่าต้องการทำอะไร</p>
+       </div>
+       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"><button onclick="selectMode('check')" class="category-btn group relative overflow-hidden bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all border-2 border-blue-100 hover:border-blue-400">
+         <div class="absolute inset-0 bg-gradient-to-br from-blue-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+         <div class="relative space-y-3 text-center">
+          <div class="w-14 h-14 mx-auto bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center">
+           <i data-lucide="clipboard-check" class="w-7 h-7 text-white"></i>
+          </div>
+          <div>
+           <p id="mode-check" class="font-semibold text-gray-900 text-lg">เช็คสินค้า</p>
+           <p class="text-sm text-gray-500 mt-1" id="mode-check-desc">ตรวจสอบจำนวนวัตถุดิบ</p>
+          </div>
+         </div></button> <button onclick="selectMode('shopping')" class="category-btn group relative overflow-hidden bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all border-2 border-orange-100 hover:border-orange-400">
+         <div class="absolute inset-0 bg-gradient-to-br from-orange-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+         <div class="relative space-y-3 text-center">
+          <div class="w-14 h-14 mx-auto bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center">
+           <i data-lucide="shopping-cart" class="w-7 h-7 text-white"></i>
+          </div>
+          <div>
+           <p id="mode-shopping" class="font-semibold text-gray-900 text-lg">ซื้อสินค้า</p>
+           <p class="text-sm text-gray-500 mt-1" id="mode-shopping-desc">บันทึกรายการซื้อ</p>
+          </div>
+         </div></button> <button onclick="selectMode('incoming')" class="category-btn group relative overflow-hidden bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all border-2 border-green-100 hover:border-green-400">
+         <div class="absolute inset-0 bg-gradient-to-br from-green-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+         <div class="relative space-y-3 text-center">
+          <div class="w-14 h-14 mx-auto bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center">
+           <i data-lucide="inbox" class="w-7 h-7 text-white"></i>
+          </div>
+          <div>
+           <p id="mode-incoming" class="font-semibold text-gray-900 text-lg">สินค้าเข้าคลัง</p>
+           <p class="text-sm text-gray-500 mt-1" id="mode-incoming-desc">บันทึกสินค้าที่สั่งมา</p>
+          </div>
+         </div></button> <button onclick="selectMode('withdrawal')" class="category-btn group relative overflow-hidden bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all border-2 border-red-100 hover:border-red-400">
+         <div class="absolute inset-0 bg-gradient-to-br from-red-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+         <div class="relative space-y-3 text-center">
+          <div class="w-14 h-14 mx-auto bg-gradient-to-br from-red-400 to-red-600 rounded-xl flex items-center justify-center">
+           <i data-lucide="minus-circle" class="w-7 h-7 text-white"></i>
+          </div>
+          <div>
+           <p id="mode-withdrawal" class="font-semibold text-gray-900 text-lg">เบิกใช้</p>
+           <p class="text-sm text-gray-500 mt-1" id="mode-withdrawal-desc">บันทึกการเบิกใช้</p>
+          </div>
+         </div></button> <button onclick="viewInventory()" class="category-btn group relative overflow-hidden bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all border-2 border-purple-100 hover:border-purple-400">
+         <div class="absolute inset-0 bg-gradient-to-br from-purple-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+         <div class="relative space-y-3 text-center">
+          <div class="w-14 h-14 mx-auto bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl flex items-center justify-center">
+           <i data-lucide="boxes" class="w-7 h-7 text-white"></i>
+          </div>
+          <div>
+           <p id="mode-inventory" class="font-semibold text-gray-900 text-lg">สินค้าคงคลัง</p>
+           <p class="text-sm text-gray-500 mt-1" id="mode-inventory-desc">ดูรวมทั้งหมด</p>
+          </div>
+         </div></button>
+       </div><button onclick="backToName()" class="w-full mt-8 bg-gray-100 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"> <i data-lucide="arrow-left" class="w-5 h-5"></i> <span id="back-label">ย้อนกลับ</span> </button>
+      </div>
+     </div>
+    </div>
+    <div id="screen-category" class="hidden h-full flex items-center justify-center px-6 py-8 fade-in">
+     <div class="w-full max-w-2xl">
+      <div class="space-y-6">
+       <div class="text-center space-y-2">
+        <h2 id="category-title" class="text-3xl font-bold text-gray-900">เลือกประเภท</h2>
+        <p id="category-desc" class="text-gray-500">เลือกหมวดหมู่วัตถุดิบ</p>
+       </div>
+       <div class="grid grid-cols-1 md:grid-cols-3 gap-4"><button onclick="selectCategory('dry')" class="category-btn group relative overflow-hidden bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all border-2 border-amber-100 hover:border-amber-400">
+         <div class="absolute inset-0 bg-gradient-to-br from-amber-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+         <div class="relative space-y-3 text-center">
+          <div class="w-14 h-14 mx-auto bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center">
+           <i data-lucide="package" class="w-7 h-7 text-white"></i>
+          </div>
+          <div>
+           <p id="cat-dry" class="font-semibold text-gray-900 text-lg">ของแห้ง</p>
+           <p class="text-sm text-gray-500 mt-1" id="cat-dry-count">30 รายการ</p>
+          </div>
+         </div></button> <button onclick="selectCategory('veg')" class="category-btn group relative overflow-hidden bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all border-2 border-green-100 hover:border-green-400">
+         <div class="absolute inset-0 bg-gradient-to-br from-green-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+         <div class="relative space-y-3 text-center">
+          <div class="w-14 h-14 mx-auto bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center">
+           <i data-lucide="leaf" class="w-7 h-7 text-white"></i>
+          </div>
+          <div>
+           <p id="cat-veg" class="font-semibold text-gray-900 text-lg">ผัก</p>
+           <p class="text-sm text-gray-500 mt-1" id="cat-veg-count">28 รายการ</p>
+          </div>
+         </div></button> <button onclick="selectCategory('meat')" class="category-btn group relative overflow-hidden bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all border-2 border-red-100 hover:border-red-400">
+         <div class="absolute inset-0 bg-gradient-to-br from-red-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+         <div class="relative space-y-3 text-center">
+          <div class="w-14 h-14 mx-auto bg-gradient-to-br from-red-400 to-rose-500 rounded-xl flex items-center justify-center">
+           <i data-lucide="flame" class="w-7 h-7 text-white"></i>
+          </div>
+          <div>
+           <p id="cat-meat" class="font-semibold text-gray-900 text-lg">เนื้อสัตว์</p>
+           <p class="text-sm text-gray-500 mt-1" id="cat-meat-count">12 รายการ</p>
+          </div>
+         </div></button>
+       </div><button onclick="backToMode()" class="w-full mt-8 bg-gray-100 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"> <i data-lucide="arrow-left" class="w-5 h-5"></i> <span id="back-label2">ย้อนกลับ</span> </button>
+      </div>
+     </div>
+    </div>
+    <div id="screen-items" class="hidden px-6 py-6 pb-32 fade-in">
+     <div class="max-w-4xl mx-auto space-y-4">
+      <div class="flex items-center gap-3 mb-6"><button onclick="backToCategory()" class="p-2 hover:bg-gray-100 rounded-lg transition-colors"> <i data-lucide="arrow-left" class="w-6 h-6 text-gray-600"></i> </button>
+       <div class="flex-1">
+        <h2 id="items-title" class="text-2xl font-bold text-gray-900"></h2>
+        <p id="items-info" class="text-sm text-gray-500 mt-1"></p>
+       </div>
+      </div>
+      <div class="flex items-center justify-between mb-4">
+       <h3 id="items-count" class="text-sm font-medium text-gray-600"></h3><button onclick="openAddItemModal()" class="flex items-center gap-2 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium"> <i data-lucide="plus" class="w-4 h-4"></i> <span id="add-item-label">เพิ่มรายการ</span> </button>
+      </div>
+      <div id="items-list" class="space-y-3"></div>
+      <div id="comparison-section" class="hidden mt-6 pt-6 border-t border-gray-200">
+       <h3 class="text-lg font-semibold text-gray-900 mb-4">📊 เปรียบเทียบกับการเช็คล่าสุด</h3>
+       <div id="comparison-list" class="space-y-2"></div>
+      </div><button id="save-btn" onclick="saveData()" class="fixed bottom-6 right-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-4 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 font-semibold">
+       <div class="loading-spinner hidden" id="save-spinner"></div><span id="save-btn-text">บันทึก</span> <i data-lucide="check" class="w-5 h-5"></i> </button> <button id="summary-btn" onclick="openSummary()" class="fixed bottom-6 left-6 bg-gradient-to-r from-purple-500 to-pink-600 text-white px-6 py-4 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 font-semibold"> <i data-lucide="bar-chart-3" class="w-5 h-5"></i><span id="summary-btn-text">สรุป</span></button>
+     </div>
+    </div>
+    <div id="screen-history" class="hidden px-6 py-6 pb-20 fade-in">
+     <div class="max-w-4xl mx-auto space-y-4">
+      <div class="flex items-center gap-3 mb-6"><button onclick="backFromHistory()" class="p-2 hover:bg-gray-100 rounded-lg transition-colors"> <i data-lucide="arrow-left" class="w-6 h-6 text-gray-600"></i> </button>
+       <h2 id="history-title" class="text-2xl font-bold text-gray-900">ประวัติ</h2><button id="summary-btn-history" onclick="openSummaryFromHistory()" class="ml-auto bg-gradient-to-r from-purple-500 to-pink-600 text-white px-4 py-2 rounded-lg font-semibold hover:shadow-lg transition-all flex items-center gap-2"> <i data-lucide="bar-chart-3" class="w-4 h-4"></i><span id="summary-btn-text-history">สรุป</span></button>
+      </div>
+      <div id="history-list" class="space-y-3"></div>
+     </div>
+    </div>
+    <div id="screen-summary" class="hidden px-6 py-6 pb-20 fade-in">
+     <div class="max-w-4xl mx-auto space-y-4">
+      <div class="flex items-center gap-3 mb-6"><button onclick="backFromSummary()" class="p-2 hover:bg-gray-100 rounded-lg transition-colors"> <i data-lucide="arrow-left" class="w-6 h-6 text-gray-600"></i> </button>
+       <h2 id="summary-title" class="text-2xl font-bold text-gray-900">สรุป</h2>
+      </div>
+      <div class="flex gap-2 mb-6 overflow-x-auto pb-2"><button onclick="setSummaryCategory('dry')" class="summary-tab-btn active px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap flex items-center gap-2" data-category="dry"> <i data-lucide="package" class="w-4 h-4"></i> <span id="tab-dry">ของแห้ง</span> </button> <button onclick="setSummaryCategory('veg')" class="summary-tab-btn px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap flex items-center gap-2" data-category="veg"> <i data-lucide="leaf" class="w-4 h-4"></i> <span id="tab-veg">ผัก</span> </button> <button onclick="setSummaryCategory('meat')" class="summary-tab-btn px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap flex items-center gap-2" data-category="meat"> <i data-lucide="flame" class="w-4 h-4"></i> <span id="tab-meat">เนื้อสัตว์</span> </button>
+      </div>
+      <div id="summary-table" class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+       <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+         <thead class="bg-gradient-to-r from-purple-100 to-pink-100 border-b border-gray-200">
+          <tr>
+           <th class="px-4 py-3 text-left font-semibold text-gray-900" id="col-item">รายการ</th>
+           <th class="px-4 py-3 text-right font-semibold text-gray-900" id="col-quantity">จำนวน</th>
+           <th class="px-4 py-3 text-left font-semibold text-gray-900" id="col-unit">หน่วย</th>
+          </tr>
+         </thead>
+         <tbody id="summary-tbody" class="divide-y divide-gray-200"></tbody>
+        </table>
+       </div>
+      </div>
+     </div>
+    </div>
+    <div id="screen-inventory" class="hidden px-6 py-6 pb-20 fade-in">
+     <div class="max-w-6xl mx-auto space-y-6">
+      <div class="flex items-center gap-3 mb-6"><button onclick="backFromInventory()" class="p-2 hover:bg-gray-100 rounded-lg transition-colors"> <i data-lucide="arrow-left" class="w-6 h-6 text-gray-600"></i> </button>
+       <h2 id="inventory-title" class="text-2xl font-bold text-gray-900">สินค้าคงคลัง</h2>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+       <div class="bg-white rounded-lg p-4 border-l-4 border-blue-500">
+        <p class="text-sm text-gray-600" id="inv-check-label">ตัวเลขจากการเช็ค</p>
+        <p id="inv-check-count" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+       </div>
+       <div class="bg-white rounded-lg p-4 border-l-4 border-green-500">
+        <p class="text-sm text-gray-600" id="inv-incoming-label">ตัวเลขจากสินค้าเข้า</p>
+        <p id="inv-incoming-count" class="text-3xl font-bold text-green-600 mt-2">0</p>
+       </div>
+       <div class="bg-white rounded-lg p-4 border-l-4 border-orange-500">
+        <p class="text-sm text-gray-600" id="inv-withdrawal-label">ตัวเลขจากการเบิกใช้</p>
+        <p id="inv-withdrawal-count" class="text-3xl font-bold text-orange-600 mt-2">0</p>
+       </div>
+       <div class="bg-white rounded-lg p-4 border-l-4 border-red-500">
+        <p class="text-sm text-gray-600" id="inv-shopping-label">ตัวเลขจากการซื้อ</p>
+        <p id="inv-shopping-count" class="text-3xl font-bold text-red-600 mt-2">0</p>
+       </div>
+      </div>
+      <div class="flex gap-2 mb-6 overflow-x-auto pb-2"><button onclick="setInventoryCategory('dry')" class="summary-tab-btn active px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap flex items-center gap-2" data-inv-category="dry"> <i data-lucide="package" class="w-4 h-4"></i> <span id="inv-tab-dry">ของแห้ง</span> </button> <button onclick="setInventoryCategory('veg')" class="summary-tab-btn px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap flex items-center gap-2" data-inv-category="veg"> <i data-lucide="leaf" class="w-4 h-4"></i> <span id="inv-tab-veg">ผัก</span> </button> <button onclick="setInventoryCategory('meat')" class="summary-tab-btn px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap flex items-center gap-2" data-inv-category="meat"> <i data-lucide="flame" class="w-4 h-4"></i> <span id="inv-tab-meat">เนื้อสัตว์</span> </button>
+      </div>
+      <div id="inventory-table" class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+       <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+         <thead class="bg-gradient-to-r from-purple-100 to-pink-100 border-b border-gray-200">
+          <tr>
+           <th class="px-4 py-3 text-left font-semibold text-gray-900" id="inv-col-item">รายการ</th>
+           <th class="px-4 py-3 text-right font-semibold text-gray-900" id="inv-col-check">เช็ค</th>
+           <th class="px-4 py-3 text-right font-semibold text-gray-900" id="inv-col-incoming">เข้าคลัง</th>
+           <th class="px-4 py-3 text-right font-semibold text-gray-900" id="inv-col-withdrawal">เบิกใช้</th>
+           <th class="px-4 py-3 text-right font-semibold text-gray-900" id="inv-col-total">รวม</th>
+           <th class="px-4 py-3 text-right font-semibold text-gray-900" id="inv-col-shopping">ซื้อ</th>
+           <th class="px-4 py-3 text-right font-semibold text-gray-900" id="inv-col-after-shopping">รวมหลังซื้อ</th>
+           <th class="px-4 py-3 text-left font-semibold text-gray-900" id="inv-col-unit">หน่วย</th>
+          </tr>
+         </thead>
+         <tbody id="inventory-tbody" class="divide-y divide-gray-200"></tbody>
+        </table>
+       </div>
+      </div>
+     </div>
+    </div>
+    <div id="success-toast" class="hidden fixed bottom-6 left-6 bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 animate-bounce">
+     <i data-lucide="check-circle" class="w-5 h-5"></i> <span id="success-text">บันทึกสำเร็จ</span>
+    </div>
+    <div id="add-item-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-6">
+     <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4 fade-in">
+      <div class="flex items-center justify-between mb-4">
+       <h3 id="modal-title" class="text-xl font-bold text-gray-900">เพิ่มรายการใหม่</h3><button onclick="closeAddItemModal()" class="p-1 hover:bg-gray-100 rounded-lg transition-colors"> <i data-lucide="x" class="w-5 h-5 text-gray-600"></i> </button>
+      </div>
+      <div class="space-y-4">
+       <div><label id="modal-name-label" class="block text-sm font-medium text-gray-700 mb-2">ชื่อรายการ</label> <input id="modal-item-name" type="text" placeholder="ระบุชื่อสินค้า" class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500">
+       </div>
+       <div><label id="modal-sku-label" class="block text-sm font-medium text-gray-700 mb-2">SKU</label> <input id="modal-item-sku" type="text" placeholder="เช่น CUST001" class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500">
+       </div>
+       <div><label id="modal-category-label" class="block text-sm font-medium text-gray-700 mb-2">ประเภท</label> <select id="modal-item-category" class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"> <option value="dry" id="cat-opt-dry">ของแห้ง</option> <option value="veg" id="cat-opt-veg">ผัก</option> <option value="meat" id="cat-opt-meat">เนื้อสัตว์</option> </select>
+       </div>
+      </div>
+      <div class="flex gap-3 pt-4"><button onclick="closeAddItemModal()" id="modal-cancel-btn" class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors">ยกเลิก</button> <button onclick="saveNewItem()" id="modal-save-btn" class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors">บันทึก</button>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+    let currentLanguage = 'th';
+    let currentCheckerName = '';
+    let currentMode = '';
+    let currentCategory = '';
+    let allData = [];
+    let currentSummaryCategory = 'dry';
+    let previousScreen = '';
+
+    const translations = {
+      th: {
+        'checker-name-title': 'ลงชื่อผู้เช็ค',
+        'checker-name-desc': 'กรุณากรอกชื่อของคุณ',
+        'start-btn-text': 'ถัดไป',
+        'mode-title': 'เลือกโหมด',
+        'mode-desc': 'เลือกว่าต้องการทำอะไร',
+        'mode-check': 'เช็คสินค้า',
+        'mode-check-desc': 'ตรวจสอบจำนวนวัตถุดิบ',
+        'mode-shopping': 'ซื้อสินค้า',
+        'mode-shopping-desc': 'บันทึกรายการซื้อ',
+        'mode-incoming': 'สินค้าเข้าคลัง',
+        'mode-incoming-desc': 'บันทึกสินค้าที่สั่งมา',
+        'mode-withdrawal': 'เบิกใช้',
+        'mode-withdrawal-desc': 'บันทึกการเบิกใช้',
+        'mode-inventory': 'สินค้าคงคลัง',
+        'mode-inventory-desc': 'ดูรวมทั้งหมด',
+        'category-title': 'เลือกประเภท',
+        'category-desc': 'เลือกหมวดหมู่วัตถุดิบ',
+        'cat-dry': 'ของแห้ง',
+        'cat-veg': 'ผัก',
+        'cat-meat': 'เนื้อสัตว์',
+        'back-label': 'ย้อนกลับ',
+        'back-label2': 'ย้อนกลับ',
+        'history-label': 'ประวัติ',
+        'lang-label': 'ไทย',
+        'save-btn-text': 'บันทึก',
+        'success-text': 'บันทึกสำเร็จ',
+        'history-title': 'ประวัติ',
+        'cat-dry-count': '30 รายการ',
+        'cat-veg-count': '28 รายการ',
+        'cat-meat-count': '12 รายการ',
+        'summary-btn-text': 'สรุป',
+        'summary-btn-text-history': 'สรุป',
+        'summary-title': 'สรุป',
+        'tab-dry': 'ของแห้ง',
+        'tab-veg': 'ผัก',
+        'tab-meat': 'เนื้อสัตว์',
+        'col-item': 'รายการ',
+        'col-quantity': 'จำนวน',
+        'col-unit': 'หน่วย',
+        'inventory-title': 'สินค้าคงคลัง',
+        'inv-check-label': 'ตัวเลขจากการเช็ค',
+        'inv-incoming-label': 'ตัวเลขจากสินค้าเข้า',
+        'inv-withdrawal-label': 'ตัวเลขจากการเบิกใช้',
+        'inv-shopping-label': 'ตัวเลขจากการซื้อ',
+        'inv-tab-dry': 'ของแห้ง',
+        'inv-tab-veg': 'ผัก',
+        'inv-tab-meat': 'เนื้อสัตว์',
+        'inv-col-item': 'รายการ',
+        'inv-col-check': 'เช็ค',
+        'inv-col-incoming': 'เข้าคลัง',
+        'inv-col-withdrawal': 'เบิกใช้',
+        'inv-col-total': 'รวม',
+        'inv-col-shopping': 'ซื้อ',
+        'inv-col-after-shopping': 'รวมหลังซื้อ',
+        'inv-col-unit': 'หน่วย',
+        'add-item-label': 'เพิ่มรายการ',
+        'modal-title': 'เพิ่มรายการใหม่',
+        'modal-name-label': 'ชื่อรายการ',
+        'modal-sku-label': 'SKU',
+        'modal-category-label': 'ประเภท',
+        'modal-cancel-btn': 'ยกเลิก',
+        'modal-save-btn': 'บันทึก'
+      },
+      en: {
+        'checker-name-title': 'Check In',
+        'checker-name-desc': 'Please enter your name',
+        'start-btn-text': 'Next',
+        'mode-title': 'Select Mode',
+        'mode-desc': 'Choose what you want to do',
+        'mode-check': 'Check Stock',
+        'mode-check-desc': 'Verify ingredient quantities',
+        'mode-shopping': 'Shopping List',
+        'mode-shopping-desc': 'Record purchase items',
+        'mode-incoming': 'Incoming Stock',
+        'mode-incoming-desc': 'Record ordered items',
+        'mode-withdrawal': 'Withdrawal',
+        'mode-withdrawal-desc': 'Record withdrawal items',
+        'mode-inventory': 'Inventory',
+        'mode-inventory-desc': 'View all together',
+        'category-title': 'Select Category',
+        'category-desc': 'Choose ingredient category',
+        'cat-dry': 'Dry Goods',
+        'cat-veg': 'Vegetables',
+        'cat-meat': 'Meat',
+        'back-label': 'Back',
+        'back-label2': 'Back',
+        'history-label': 'History',
+        'lang-label': 'English',
+        'save-btn-text': 'Save',
+        'success-text': 'Saved successfully',
+        'history-title': 'History',
+        'cat-dry-count': '30 items',
+        'cat-veg-count': '28 items',
+        'cat-meat-count': '12 items',
+        'summary-btn-text': 'Summary',
+        'summary-btn-text-history': 'Summary',
+        'summary-title': 'Summary',
+        'tab-dry': 'Dry Goods',
+        'tab-veg': 'Vegetables',
+        'tab-meat': 'Meat',
+        'col-item': 'Item',
+        'col-quantity': 'Quantity',
+        'col-unit': 'Unit',
+        'inventory-title': 'Inventory',
+        'inv-check-label': 'Check count',
+        'inv-incoming-label': 'Incoming count',
+        'inv-withdrawal-label': 'Withdrawal count',
+        'inv-shopping-label': 'Shopping count',
+        'inv-tab-dry': 'Dry Goods',
+        'inv-tab-veg': 'Vegetables',
+        'inv-tab-meat': 'Meat',
+        'inv-col-item': 'Item',
+        'inv-col-check': 'Check',
+        'inv-col-incoming': 'Incoming',
+        'inv-col-withdrawal': 'Withdrawal',
+        'inv-col-shopping': 'Shopping',
+        'inv-col-total': 'Total',
+        'inv-col-after-shopping': 'After Shopping',
+        'inv-col-unit': 'Unit',
+        'add-item-label': 'Add Item',
+        'modal-title': 'Add New Item',
+        'modal-name-label': 'Item Name',
+        'modal-sku-label': 'SKU',
+        'modal-category-label': 'Category',
+        'modal-cancel-btn': 'Cancel',
+        'modal-save-btn': 'Save'
+      },
+      my: {
+        'checker-name-title': 'အမည်ထည့်သည်',
+        'checker-name-desc': 'သင်၏အမည်ကိုထည့်သွင်းပါ',
+        'start-btn-text': 'နောက်တစ်ခု',
+        'mode-title': 'မုဒ်ရွေးချယ်ပါ',
+        'mode-desc': 'သင်လုပ်လိုသည်ကိုရွေးချယ်ပါ',
+        'mode-check': 'စာလုံးများစစ်ဆေးမှု',
+        'mode-check-desc': 'ပစ္စည်းပမာណ်များ စစ်ဆေးပါ',
+        'mode-shopping': 'ဝယ်ယူမှုစာရင်း',
+        'mode-shopping-desc': 'ဝယ်ယူမှုကိစ္စများမှတ်သားပါ',
+        'mode-incoming': 'အဆင့်မြင့်ပစ္စည်း',
+        'mode-incoming-desc': 'မှာယူခဲ့သည့်အရာများမှတ်သားပါ',
+        'mode-withdrawal': 'ထုတ်ယူခြင်း',
+        'mode-withdrawal-desc': 'ထုတ်ယူမှုမှတ်သားပါ',
+        'mode-inventory': 'စာလုံးစာရင်း',
+        'mode-inventory-desc': 'အားလုံးကိုအတူတကွကြည့်ပါ',
+        'category-title': 'အမျိုးအစားရွေးချယ်ပါ',
+        'category-desc': 'ပစ္စည်းအမျိုးအစားကိုရွေးချယ်ပါ',
+        'cat-dry': 'ခြောက်သွေ့',
+        'cat-veg': 'သုံးရွက်',
+        'cat-meat': 'သားထည',
+        'back-label': 'ပြန်သည်',
+        'back-label2': 'ပြန်သည်',
+        'history-label': 'သမိုင်းအ၀တ်',
+        'lang-label': 'မြန်မာ',
+        'save-btn-text': 'သိမ်းဆည်းရန်',
+        'success-text': 'အောင်မြင်စွာသိမ်းဆည်းခြင်း',
+        'history-title': 'သမိုင်းအ၀တ်',
+        'cat-dry-count': 'အရာ ၃၀',
+        'cat-veg-count': 'အရာ ၂၈',
+        'cat-meat-count': 'အရာ ၁၂',
+        'summary-btn-text': 'အကျဉ်းချုပ်',
+        'summary-btn-text-history': 'အကျဉ်းချုပ်',
+        'summary-title': 'အကျဉ်းချုပ်',
+        'tab-dry': 'ခြောက်သွေ့',
+        'tab-veg': 'သုံးရွက်',
+        'tab-meat': 'သားထည',
+        'col-item': 'အရာ',
+        'col-quantity': 'အရေအတွက်',
+        'col-unit': 'ယူနစ်',
+        'inventory-title': 'စာလုံးစာရင်း',
+        'inv-check-label': 'စစ်ဆေးမှုအရေအတွက်',
+        'inv-incoming-label': 'အဆင့်မြင့်အရေအတွက်',
+        'inv-withdrawal-label': 'ထုတ်ယူမှုအရေအတွက်',
+        'inv-shopping-label': 'ဝယ်ယူမှုအရေအတွက်',
+        'inv-tab-dry': 'ခြောက်သွေ့',
+        'inv-tab-veg': 'သုံးရွက်',
+        'inv-tab-meat': 'သားထည',
+        'inv-col-item': 'အရာ',
+        'inv-col-check': 'စစ်ဆေးမှု',
+        'inv-col-incoming': 'အဆင့်မြင့်',
+        'inv-col-withdrawal': 'ထုတ်ယူခြင်း',
+        'inv-col-shopping': 'ဝယ်ယူမှု',
+        'inv-col-total': 'စုစုပေါ်',
+        'inv-col-after-shopping': 'ဝယ်ယူမှုအ後',
+        'inv-col-unit': 'ယူနစ်',
+        'add-item-label': 'အရာထည့်သည်',
+        'modal-title': 'နံစာစက',
+        'modal-name-label': 'အရာအမည်',
+        'modal-sku-label': 'SKU',
+        'modal-category-label': 'အမျိုးအစား',
+        'modal-cancel-btn': 'ပယ်ဆောင်းရန်',
+        'modal-save-btn': 'သိမ်းဆည်းရန်'
+      },
+      ko: {
+        'checker-name-title': '확인자명',
+        'checker-name-desc': '이름을 입력하세요',
+        'start-btn-text': '다음',
+        'mode-title': '모드 선택',
+        'mode-desc': '하고 싶은 것을 선택하세요',
+        'mode-check': '재고 확인',
+        'mode-check-desc': '재료 수량 확인',
+        'mode-shopping': '쇼핑 목록',
+        'mode-shopping-desc': '구매 항목 기록',
+        'mode-incoming': '입고 품목',
+        'mode-incoming-desc': '주문한 항목 기록',
+        'mode-withdrawal': '출금',
+        'mode-withdrawal-desc': '출금 항목 기록',
+        'mode-inventory': '재고',
+        'mode-inventory-desc': '모든 항목 보기',
+        'category-title': '카테고리 선택',
+        'category-desc': '재료 카테고리 선택',
+        'cat-dry': '건조식품',
+        'cat-veg': '채소',
+        'cat-meat': '육류',
+        'back-label': '뒤로',
+        'back-label2': '뒤로',
+        'history-label': '기록',
+        'lang-label': '한국어',
+        'save-btn-text': '저장',
+        'success-text': '저장되었습니다',
+        'history-title': '기록',
+        'cat-dry-count': '30개 항목',
+        'cat-veg-count': '28개 항목',
+        'cat-meat-count': '12개 항목',
+        'summary-btn-text': '요약',
+        'summary-btn-text-history': '요약',
+        'summary-title': '요약',
+        'tab-dry': '건조식품',
+        'tab-veg': '채소',
+        'tab-meat': '육류',
+        'col-item': '항목',
+        'col-quantity': '수량',
+        'col-unit': '단위',
+        'inventory-title': '재고',
+        'inv-check-label': '확인 수량',
+        'inv-incoming-label': '입고 수량',
+        'inv-withdrawal-label': '출금 수량',
+        'inv-shopping-label': '쇼핑 수량',
+        'inv-tab-dry': '건조식품',
+        'inv-tab-veg': '채소',
+        'inv-tab-meat': '육류',
+        'inv-col-item': '항목',
+        'inv-col-check': '확인',
+        'inv-col-incoming': '입고',
+        'inv-col-withdrawal': '출금',
+        'inv-col-shopping': '쇼핑',
+        'inv-col-total': '합계',
+        'inv-col-after-shopping': '쇼핑 후',
+        'inv-col-unit': '단위',
+        'add-item-label': '항목 추가',
+        'modal-title': '새 항목 추가',
+        'modal-name-label': '항목명',
+        'modal-sku-label': 'SKU',
+        'modal-category-label': '카테고리',
+        'modal-cancel-btn': '취소',
+        'modal-save-btn': '저장'
+      }
+    };
+
+    const categories = {
+      dry: {
+        label: { th: 'ของแห้ง', en: 'Dry Goods', my: 'ခြောက်သွေ့ပစ္စည်းများ', ko: '건조 식품' },
+        icon: 'package',
+        items: [
+          { th: 'ซอสหอยตาหมี', en: 'Oyster Sauce', my: 'ခွက်ဆီ', ko: '굴소스', sku: 'A001' },
+          { th: 'ทูมันจัง', en: 'Tumman Jung', my: 'ထူမန်ချန်', ko: '투만중', sku: 'A002' },
+          { th: 'ซอสคันจัง', en: 'Kan Jung Sauce', my: 'ကန်ချန်ဆီ', ko: '깐중소스', sku: 'A003' },
+          { th: 'น้ำเชื่อมพลัม', en: 'Plum Syrup', my: 'သကြားမြူး', ko: '자두 시럽', sku: 'A004' },
+          { th: 'ซีอิ๊วดำหวาน', en: 'Sweet Black Soy', my: 'အစ်ည်းမည်း', ko: '검은콩 간장', sku: 'A005' },
+          { th: 'เหล้าจีน', en: 'Chinese Rice Wine', my: 'တရုတ်ရူဂျီ', ko: '중국 쌀포도주', sku: 'A006' },
+          { th: 'ไวน์องุ่น', en: 'Grape Wine', my: 'စပျစ်သီးရူဂျီ', ko: '포도주', sku: 'A007' },
+          { th: 'น้ำส้มสายชู', en: 'Vinegar', my: 'ခရမ်းသီးအက်', ko: '식초', sku: 'A008' },
+          { th: 'ซอสหม่าล่า', en: 'Ma La Sauce', my: 'မားလာဆီ', ko: '마라 소스', sku: 'A009' },
+          { th: 'น้ำเชื่อบ๊วย', en: 'Pear Juice Sauce', my: 'သီတံပိုးရည်', ko: '배 과일 소스', sku: 'A010' },
+          { th: 'พริกจำปง', en: 'Szechuan Pepper', my: 'စားချူဆန်းအခြင်း', ko: '산초추', sku: 'A011' },
+          { th: 'น้ำมันจำปง', en: 'Szechuan Oil', my: 'စားချူဆန်းအဆီ', ko: '산초 기름', sku: 'A012' },
+          { th: 'น้ำมันงา', en: 'Sesame Oil', my: 'ငံမွှေးအဆီ', ko: '참기름', sku: 'A013' },
+          { th: 'ผงฮอนดาชิ', en: 'Hon Dashi Powder', my: 'ဟွန်ဒုံခြင်းမုံ့', ko: '혼다시 가루', sku: 'A014' },
+          { th: 'ข้าวตัง', en: 'Fried Rice Powder', my: 'ကျော်ကြင်းမုံ့', ko: '쌀 가루', sku: 'A015' },
+          { th: 'แผ่นเกี๊ยวเกาหลี', en: 'Korean Dumpling Sheet', my: 'ကိုရီးယားညိုင်ငွေဖြာ', ko: '한국 만두피', sku: 'A016' },
+          { th: 'คนอร์ไก่', en: 'Knorr Chicken', my: 'နုန်ကြက်သားအချည်း', ko: '넉스 치킨', sku: 'A017' },
+          { th: 'โป๊ยกั๊ก', en: 'Star Anise', my: 'ကြယ်လုံးအီလူံ', ko: '팔각', sku: 'A018' },
+          { th: 'อบเชย', en: 'Cinnamon', my: 'ပီးဆံ', ko: '계피', sku: 'A019' },
+          { th: 'ใบกระวาน', en: 'Bay Leaf', my: 'အခေါက်ရွက်', ko: '월계수 잎', sku: 'A020' },
+          { th: 'เกลือ', en: 'Salt', my: 'ဆား', ko: '소금', sku: 'A021' },
+          { th: 'ชูรส', en: 'MSG', my: 'အရသာ', ko: '조미료', sku: 'A022' },
+          { th: 'น้ำตาลทรายขาว', en: 'White Sugar', my: 'အဖြူရဲ့သ糖', ko: '백설탕', sku: 'A023' },
+          { th: 'พริกแห้ง', en: 'Dried Chili', my: 'သုံးခွံလှီလီ', ko: '말린 고추', sku: 'A024' },
+          { th: 'ซีอิ๊วขาว', en: 'Kikkoman Soy', my: 'အဖြူလူံအရည်', ko: '흰 간장', sku: 'A025' },
+          { th: 'ซอส XO', en: 'XO Sauce', my: 'xyအိုဆီ', ko: 'XO 소스', sku: 'A026' },
+          { th: 'ฮอยซินซอส', en: 'Hoisin Sauce', my: 'ဟွယ်စင်ဆီ', ko: '해신 소스', sku: 'A027' },
+          { th: 'ซอสมัสตาร์ด', en: 'Mustard Sauce', my: 'ချည်တုံဆီ', ko: '겨자소스', sku: 'A028' },
+          { th: 'พริกเผาเกาหลี', en: 'Korean Chili Flakes', my: 'ကိုရီးယားလှီလီ', ko: '고추가루', sku: 'A029' },
+          { th: 'น้ำมันพืช', en: 'Vegetable Oil', my: 'အပင်အဆီ', ko: '식용유', sku: 'A030' }
+        ]
+      },
+      veg: {
+        label: { th: 'ผัก', en: 'Vegetables', my: 'သုံးရွက်စာ', ko: '채소' },
+        icon: 'leaf',
+        items: [
+          { th: 'พริกจินดาแดง, เขียว', en: 'Red & Green Chindi', my: 'နီအစ အစိမ်း', ko: '빨강 초록 청양고추', sku: 'V001' },
+          { th: 'กวางตุ้งไต้หวัน', en: 'Taiwan Vegetable', my: 'တိုင်ဝမ်စုံလင်း', ko: '대만 채소', sku: 'V002' },
+          { th: 'ต้นหอมญี่ปุ่น', en: 'Japanese Scallion', my: 'ဂျပန်ခြင်း', ko: '일본 파', sku: 'V003' },
+          { th: 'พริกหวานยักษ์ เขียว, แดง', en: 'Giant Bell Pepper', my: 'ကြီးမားသောခွက်', ko: '커다란 파프리카', sku: 'V004' },
+          { th: 'ผักชี', en: 'Cilantro', my: 'ကုန်းစံ', ko: '고수', sku: 'V005' },
+          { th: 'หัวไชเท้า', en: 'Turnip', my: 'ချေးရစ်', ko: '무', sku: 'V006' },
+          { th: 'แครอท', en: 'Carrot', my: 'မုံ့အနီ', ko: '당근', sku: 'V007' },
+          { th: 'มะเขือยาว', en: 'Long Eggplant', my: 'ခြင်းသီး', ko: '가지', sku: 'V008' },
+          { th: 'กระเทียมจีนปลอก', en: 'Peeled Chinese Garlic', my: 'ခေါ်ခြင်းဖြုတ်', ko: '껍질 벗긴 마늘', sku: 'V009' },
+          { th: 'หอมใหญ่', en: 'Onion', my: 'အကြီးမျ', ko: '양파', sku: 'V010' },
+          { th: 'ฟิลเลย์ไอซ์เบิร์ก', en: 'Iceberg Fillet', my: 'အင်္ဂလိပ်ပန်း', ko: '아이스버그 양상추', sku: 'V011' },
+          { th: 'บัตเตอร์เฮต', en: 'Butter Lettuce', my: 'လုံးအခြင်း', ko: '버터상추', sku: 'V012' },
+          { th: 'กระหล่ำ', en: 'Cabbage', my: 'ကဲစည်း', ko: '양배추', sku: 'V013' },
+          { th: 'ผักกาดขาว', en: 'Bok Choy', my: 'ကြက်သည်ပန်း', ko: '청경채', sku: 'V014' },
+          { th: 'แตงกวาญี่ปุ่น', en: 'Japanese Cucumber', my: 'ဂျပန်သံပုရား', ko: '일본 오이', sku: 'V015' },
+          { th: 'ซูกีนี่', en: 'Zucchini', my: 'ဟောက်ခြင်း', ko: '주키니', sku: 'V016' },
+          { th: 'แตงกวาไทย', en: 'Thai Cucumber', my: 'ထိုင်းသံပုရား', ko: '태국 오이', sku: 'V017' },
+          { th: 'เห็ดหอมสด', en: 'Fresh Mushroom', my: 'စေးခြင်း', ko: '버섯', sku: 'V018' },
+          { th: 'เห็ดนางรมหลวง', en: 'King Oyster Mushroom', my: 'ကင်းအီလူံ', ko: '팽이버섯', sku: 'V019' },
+          { th: 'เห็ดเข็มทอง', en: 'Enoki Mushroom', my: 'ရွှေမုံးခြင်း', ko: '골든 버섯', sku: 'V020' },
+          { th: 'หน่อไม้', en: 'Bamboo Shoot', my: 'အိုးကျီး', ko: '죽순', sku: 'V021' },
+          { th: 'ใบกุ่ยฉ่าย', en: 'Chinese Chive', my: 'တရုတ်ခြင်း', ko: '부추', sku: 'V022' },
+          { th: 'เห็ดหูหนู', en: 'Wood Ear Mushroom', my: 'နားခြင်း', ko: '검은 귀버섯', sku: 'V023' },
+          { th: 'เลม่อน', en: 'Lemon', my: 'လိမုံ', ko: '레몬', sku: 'V024' },
+          { th: 'ไข่', en: 'Egg', my: 'ကြက်ဥ', ko: '계란', sku: 'V025' },
+          { th: 'เต้าหู้แท่งโมเม้น', en: 'Tofu Block', my: 'တူဖူး', ko: '두부', sku: 'V026' },
+          { th: 'ซาลาเปา', en: 'Salah Pao', my: 'စာလာပိုး', ko: '살라빵', sku: 'V027' },
+          { th: 'ขนมจีบ', en: 'Dim Sum', my: 'တရုတ်မုံ့', ko: '딤섬', sku: 'V028' }
+        ]
+      },
+      meat: {
+        label: { th: 'เนื้อสัตว์', en: 'Meat', my: 'သားထည', ko: '육류' },
+        icon: 'flame',
+        items: [
+          { th: 'ไก่', en: 'Chicken', my: 'ကျီသား', ko: '닭고기', sku: 'M001' },
+          { th: 'กุ้ง', en: 'Shrimp', my: 'ပုံးမုံ့', ko: '새우', sku: 'M002' },
+          { th: 'หมูบด', en: 'Ground Pork', my: 'ဝက်သားဖြတ်', ko: '돼지 다진고기', sku: 'M003' },
+          { th: 'หมูสันคอ slice', en: 'Pork Neck Slice', my: 'ဝက်လည်ပင်း', ko: '돼지 목살 슬라이스', sku: 'M004' },
+          { th: 'หมูสันนอก', en: 'Pork Shoulder', my: 'ဝက်သားပခုံး', ko: '돼지 앞다리살', sku: 'M005' },
+          { th: 'เนื้อวัว', en: 'Beef', my: 'နွားသား', ko: '소고기', sku: 'M006' },
+          { th: 'เนื้ออกปู', en: 'Crab Meat', my: 'ကျီသားထည', ko: '게살', sku: 'M007' },
+          { th: 'หอยเป่าฮื้อ', en: 'Abalone', my: 'ခွံမုံ့', ko: '전복', sku: 'M008' },
+          { th: 'ปลิงทะเล', en: 'Sea Urchin', my: 'ပင်လယ်အဟော်', ko: '성게', sku: 'M009' },
+          { th: 'ปลาหิมะ', en: 'Snow Fish', my: 'နှင်းငါး', ko: '눈개미기', sku: 'M010' },
+          { th: 'หมูสามชั้น', en: 'Pork Belly', my: 'ဝက်သားလည်လည်', ko: '돼지 삼겹살', sku: 'M011' },
+          { th: 'หูฉลาม', en: 'Shark Fin', my: 'လင်းခြင်း', ko: '상어지느러미', sku: 'M012' }
+        ]
+      }
+    };
+
+    const units = ['กก.', 'ขวด', 'ถุง', 'ชิ้น', 'ที่', 'ลิตร', 'มิลลิลิตร', 'แถว'];
+    const unitsEn = ['kg', 'bottle', 'bag', 'piece', 'pack', 'L', 'ml', 'row'];
+    const unitsMy = ['ကီလိုဂရမ်', 'ပုလင်း', 'အိတ်', 'အကွက်', 'ပွဲ', 'လီတာ', 'မီလီလီတာ', 'တန်း'];
+    const unitsKo = ['kg', '병', '봉지', '개', '팩', 'L', 'ml', '줄'];
+
+    function getUnits() {
+      if (currentLanguage === 'th') return units;
+      if (currentLanguage === 'en') return unitsEn;
+      if (currentLanguage === 'my') return unitsMy;
+      if (currentLanguage === 'ko') return unitsKo;
+      return units;
+    }
+
+    function t(key) {
+      return translations[currentLanguage][key] || translations['th'][key];
+    }
+
+    function updateLanguageUI() {
+      Object.keys(translations[currentLanguage]).forEach(key => {
+        const el = document.getElementById(key);
+        if (el) el.textContent = translations[currentLanguage][key];
+      });
+      updateDateTime();
+      lucide.createIcons();
+    }
+
+    function setLanguage(lang) {
+      currentLanguage = lang;
+      updateLanguageUI();
+    }
+
+    function startChecking() {
+      const checkerName = document.getElementById('checker-name-input').value.trim();
+      if (!checkerName) {
+        alert(currentLanguage === 'th' ? 'กรุณากรอกชื่อ' : 'Please enter a name');
+        return;
+      }
+      currentCheckerName = checkerName;
+      document.getElementById('screen-name').classList.add('hidden');
+      document.getElementById('screen-mode').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function selectMode(mode) {
+      currentMode = mode;
+      document.getElementById('screen-mode').classList.add('hidden');
+      document.getElementById('screen-category').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function backToMode() {
+      document.getElementById('screen-category').classList.add('hidden');
+      document.getElementById('screen-mode').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function selectCategory(cat) {
+      currentCategory = cat;
+      document.getElementById('screen-category').classList.add('hidden');
+      document.getElementById('screen-items').classList.remove('hidden');
+      updateCategoryCounts();
+      renderItems();
+      lucide.createIcons();
+    }
+
+    function updateCategoryCounts() {
+      const dryCount = categories.dry.items.length + allData.filter(r => r.custom_item_category === 'dry' && r.is_custom).length;
+      const vegCount = categories.veg.items.length + allData.filter(r => r.custom_item_category === 'veg' && r.is_custom).length;
+      const meatCount = categories.meat.items.length + allData.filter(r => r.custom_item_category === 'meat' && r.is_custom).length;
+
+      document.getElementById('cat-dry-count').textContent = `${dryCount} ${currentLanguage === 'th' ? 'รายการ' : currentLanguage === 'en' ? 'items' : currentLanguage === 'my' ? 'အရာများ' : '항목'}`;
+      document.getElementById('cat-veg-count').textContent = `${vegCount} ${currentLanguage === 'th' ? 'รายการ' : currentLanguage === 'en' ? 'items' : currentLanguage === 'my' ? 'အရာများ' : '항목'}`;
+      document.getElementById('cat-meat-count').textContent = `${meatCount} ${currentLanguage === 'th' ? 'รายการ' : currentLanguage === 'en' ? 'items' : currentLanguage === 'my' ? 'အရာများ' : '항목'}`;
+    }
+
+    function renderItems() {
+      const items = categories[currentCategory].items;
+      const categoryLabel = categories[currentCategory].label[currentLanguage];
+      
+      document.getElementById('items-title').textContent = categoryLabel;
+      document.getElementById('items-info').textContent = `${currentMode === 'check' ? (currentLanguage === 'th' ? 'เช็คสินค้า' : currentLanguage === 'en' ? 'Check Stock' : currentLanguage === 'my' ? 'စစ်ဆေးမှု' : '재고 확인') : currentMode === 'shopping' ? (currentLanguage === 'th' ? 'ซื้อสินค้า' : currentLanguage === 'en' ? 'Shopping' : currentLanguage === 'my' ? 'ဝယ်ယူမှု' : '쇼핑') : (currentLanguage === 'th' ? 'สินค้าเข้าคลัง' : currentLanguage === 'en' ? 'Incoming Stock' : currentLanguage === 'my' ? 'အဆင့်မြင့်ပစ္စည်း' : '입고 품목')} - ${currentLanguage === 'th' ? `ผู้ใช้: ${currentCheckerName}` : currentLanguage === 'en' ? `User: ${currentCheckerName}` : currentLanguage === 'my' ? `အသုံးပြုသူ: ${currentCheckerName}` : `사용자: ${currentCheckerName}`}`;
+
+      const list = document.getElementById('items-list');
+      list.innerHTML = '';
+
+      const displayItems = [...items];
+      allData.forEach(record => {
+        if (record.category === currentCategory && record.is_custom && record.custom_item_category === currentCategory) {
+          const alreadyExists = displayItems.some(item => item.sku === record.sku);
+          if (!alreadyExists) {
+            displayItems.push({
+              [currentLanguage]: record.item_name,
+              'th': record.item_name,
+              'en': record.item_name,
+              'my': record.item_name,
+              'ko': record.item_name,
+              sku: record.sku
+            });
+          }
+        }
+      });
+
+      document.getElementById('items-count').textContent = `${displayItems.length} ${currentLanguage === 'th' ? 'รายการ' : currentLanguage === 'en' ? 'items' : currentLanguage === 'my' ? 'အရာများ' : '항목'}`;
+
+      displayItems.forEach((item, idx) => {
+        const itemName = item[currentLanguage];
+        const latestCheck = currentMode === 'shopping' ? allData
+          .filter(record => record.item_name === itemName && record.mode === 'check')
+          .sort((a, b) => new Date(b.checked_at) - new Date(a.checked_at))[0] : null;
+
+        const card = document.createElement('div');
+        card.className = 'item-card bg-white rounded-lg px-4 py-3 border flex items-center justify-between gap-4';
+        
+        let comparisonHtml = '';
+        if (latestCheck) {
+          const date = new Date(latestCheck.checked_at);
+          const timeStr = date.toLocaleTimeString(currentLanguage === 'th' ? 'th-TH' : 'en-US', { hour: '2-digit', minute: '2-digit' });
+          const dateStr = date.toLocaleDateString(currentLanguage === 'th' ? 'th-TH' : 'en-US');
+          comparisonHtml = `<p class="text-xs text-blue-600 font-medium mt-1">📊 ${currentLanguage === 'th' ? 'เช็คล่าสุด' : currentLanguage === 'en' ? 'Latest check' : currentLanguage === 'my' ? 'နောက်ဆုံးစစ်ဆေးမှု' : '최신 체크'}: ${latestCheck.quantity} ${latestCheck.unit} (${dateStr} ${timeStr})</p>`;
+        }
+        
+        card.innerHTML = `
+          <div class="flex-1 min-w-0">
+            <p class="font-semibold text-gray-900">${itemName}</p>
+            <p class="text-xs text-gray-500">SKU: ${item.sku}</p>
+            ${comparisonHtml}
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <input 
+              type="text" 
+              id="qty-${idx}" 
+              placeholder="0" 
+              class="quantity-input w-16 text-center"
+            >
+            <select id="unit-${idx}" class="unit-select">
+              ${getUnits().map((u, i) => `<option value="${u}" ${i === 0 ? 'selected' : ''}>${u}</option>`).join('')}
+            </select>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+
+      document.getElementById('comparison-section').classList.add('hidden');
+
+      lucide.createIcons();
+    }
+
+    function backToCategory() {
+      document.getElementById('screen-items').classList.add('hidden');
+      document.getElementById('screen-category').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function backToName() {
+      document.getElementById('screen-mode').classList.add('hidden');
+      document.getElementById('screen-name').classList.remove('hidden');
+      document.getElementById('checker-name-input').value = '';
+      document.getElementById('checker-name-input').focus();
+      lucide.createIcons();
+    }
+
+    async function saveData() {
+      const items = categories[currentCategory].items;
+      const saveBtn = document.getElementById('save-btn');
+      const saveSpinner = document.getElementById('save-spinner');
+      saveBtn.disabled = true;
+      saveSpinner.classList.remove('hidden');
+
+      const displayItems = [...items];
+      allData.forEach(record => {
+        if (record.category === currentCategory && record.is_custom && record.custom_item_category === currentCategory) {
+          const alreadyExists = displayItems.some(item => item.sku === record.sku);
+          if (!alreadyExists) {
+            displayItems.push({
+              [currentLanguage]: record.item_name,
+              'th': record.item_name,
+              'en': record.item_name,
+              'my': record.item_name,
+              'ko': record.item_name,
+              sku: record.sku
+            });
+          }
+        }
+      });
+
+      for (let i = 0; i < displayItems.length; i++) {
+        const qty = document.getElementById(`qty-${i}`).value.trim();
+        const unit = document.getElementById(`unit-${i}`).value;
+        
+        if (qty) {
+          const result = await window.dataSdk.create({
+            category: currentCategory,
+            item_name: displayItems[i][currentLanguage],
+            quantity: qty,
+            unit: unit,
+            checker_name: currentCheckerName,
+            checked_at: new Date().toISOString(),
+            timestamp: Date.now(),
+            mode: currentMode,
+            sku: displayItems[i].sku
+          });
+
+          if (result.isError) {
+            console.error('Save error:', result.error);
+            localStorage.setItem('last_stock_backup', JSON.stringify({
+              savedAt: new Date().toISOString(),
+              item: displayItems[i][currentLanguage],
+              qty: qty
+            }));
+          }
+        }
+      }
+
+      saveSpinner.classList.add('hidden');
+      saveBtn.disabled = false;
+
+      const toast = document.getElementById('success-toast');
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 2000);
+
+      setTimeout(() => {
+        document.getElementById('screen-items').classList.add('hidden');
+        document.getElementById('screen-category').classList.remove('hidden');
+        lucide.createIcons();
+      }, 1500);
+    }
+
+    function backFromHistory() {
+      document.getElementById('screen-history').classList.add('hidden');
+      document.getElementById('screen-mode').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function openSummary() {
+      previousScreen = 'items';
+      document.getElementById('screen-items').classList.add('hidden');
+      document.getElementById('screen-summary').classList.remove('hidden');
+      currentSummaryCategory = 'dry';
+      renderSummary();
+      lucide.createIcons();
+    }
+
+    function openSummaryFromHistory() {
+      previousScreen = 'history';
+      document.getElementById('screen-history').classList.add('hidden');
+      document.getElementById('screen-summary').classList.remove('hidden');
+      currentSummaryCategory = 'dry';
+      renderSummary();
+      lucide.createIcons();
+    }
+
+    function backFromSummary() {
+      document.getElementById('screen-summary').classList.add('hidden');
+      if (previousScreen === 'history') {
+        document.getElementById('screen-history').classList.remove('hidden');
+      } else {
+        document.getElementById('screen-items').classList.remove('hidden');
+      }
+      lucide.createIcons();
+    }
+
+    function setSummaryCategory(cat) {
+      currentSummaryCategory = cat;
+      document.querySelectorAll('.summary-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      document.querySelector(`[data-category="${cat}"]`).classList.add('active');
+      renderSummary();
+      lucide.createIcons();
+    }
+
+    function backFromInventory() {
+      document.getElementById('screen-inventory').classList.add('hidden');
+      document.getElementById('screen-mode').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function openAddItemModal() {
+      document.getElementById('add-item-modal').classList.remove('hidden');
+      document.getElementById('modal-item-name').focus();
+    }
+
+    function closeAddItemModal() {
+      document.getElementById('add-item-modal').classList.add('hidden');
+      document.getElementById('modal-item-name').value = '';
+      document.getElementById('modal-item-sku').value = '';
+      document.getElementById('modal-item-category').value = 'dry';
+    }
+
+    async function saveNewItem() {
+      const itemName = document.getElementById('modal-item-name').value.trim();
+      const itemSku = document.getElementById('modal-item-sku').value.trim();
+      const itemCategory = document.getElementById('modal-item-category').value;
+
+      if (!itemName || !itemSku) {
+        alert(currentLanguage === 'th' ? 'กรุณากรอกชื่อและ SKU' : 'Please enter name and SKU');
+        return;
+      }
+
+      const result = await window.dataSdk.create({
+        category: itemCategory,
+        item_name: itemName,
+        quantity: '',
+        unit: '',
+        checker_name: currentCheckerName,
+        checked_at: new Date().toISOString(),
+        timestamp: Date.now(),
+        mode: 'custom',
+        sku: itemSku,
+        is_custom: true,
+        custom_item_name: itemName,
+        custom_item_category: itemCategory,
+        custom_item_sku: itemSku
+      });
+
+      if (result.isOk) {
+        closeAddItemModal();
+        updateCategoryCounts();
+        renderItems();
+      }
+    }
+
+    function viewInventory() {
+      document.getElementById('screen-mode').classList.add('hidden');
+      document.getElementById('screen-inventory').classList.remove('hidden');
+      currentInventoryCategory = 'dry';
+      renderInventory();
+      lucide.createIcons();
+    }
+
+    function setInventoryCategory(cat) {
+      currentInventoryCategory = cat;
+      document.querySelectorAll('[data-inv-category]').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      document.querySelector(`[data-inv-category="${cat}"]`).classList.add('active');
+      renderInventory();
+      lucide.createIcons();
+    }
+
+    let previousInventoryData = {};
+
+    function renderInventory() {
+      const items = categories[currentInventoryCategory].items;
+      const inventoryData = {};
+
+      items.forEach(item => {
+        const itemName = item[currentLanguage];
+        inventoryData[itemName] = {
+          name: itemName,
+          check: 0,
+          incoming: 0,
+          withdrawal: 0,
+          shopping: 0,
+          unit: '',
+          latestCheckDate: null,
+          latestShoppingDate: null
+        };
+      });
+
+      allData.forEach(record => {
+        if (record.category === currentInventoryCategory && record.mode !== 'custom') {
+          const itemName = record.item_name;
+          if (!inventoryData[itemName]) {
+            inventoryData[itemName] = {
+              name: itemName,
+              check: 0,
+              incoming: 0,
+              withdrawal: 0,
+              shopping: 0,
+              unit: '',
+              latestCheckDate: null,
+              latestShoppingDate: null
+            };
+          }
+          if (record.mode === 'check') {
+            const recordDate = new Date(record.checked_at);
+            if (!inventoryData[itemName].latestCheckDate || recordDate > inventoryData[itemName].latestCheckDate) {
+              inventoryData[itemName].check = parseFloat(record.quantity) || 0;
+              inventoryData[itemName].latestCheckDate = recordDate;
+            }
+          } else if (record.mode === 'incoming') {
+            inventoryData[itemName].incoming += parseFloat(record.quantity) || 0;
+          } else if (record.mode === 'withdrawal') {
+            inventoryData[itemName].withdrawal += parseFloat(record.quantity) || 0;
+          } else if (record.mode === 'shopping') {
+            const recordDate = new Date(record.checked_at);
+            if (!inventoryData[itemName].latestShoppingDate || recordDate > inventoryData[itemName].latestShoppingDate) {
+              inventoryData[itemName].shopping = parseFloat(record.quantity) || 0;
+              inventoryData[itemName].latestShoppingDate = recordDate;
+            }
+          }
+          inventoryData[itemName].unit = record.unit;
+        }
+      });
+
+      const tbody = document.getElementById('inventory-tbody');
+      tbody.innerHTML = '';
+
+      let totalCheck = 0, totalIncoming = 0, totalWithdrawal = 0, totalShopping = 0;
+
+      Object.values(inventoryData).forEach(item => {
+        totalCheck += item.check;
+        totalIncoming += item.incoming;
+        totalWithdrawal += item.withdrawal;
+        totalShopping += item.shopping;
+
+        const itemKey = item.name;
+        const previousItem = previousInventoryData[itemKey] || {};
+        
+        const totalChanged = previousItem.check !== undefined && previousItem.check !== item.check ||
+                            previousItem.incoming !== undefined && previousItem.incoming !== item.incoming ||
+                            previousItem.withdrawal !== undefined && previousItem.withdrawal !== item.withdrawal ||
+                            previousItem.shopping !== undefined && previousItem.shopping !== item.shopping;
+
+        const totalBadge = totalChanged ? '<span class="update-badge text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">✓</span>' : '';
+
+        const checkAndIncoming = item.check + item.incoming - item.withdrawal;
+        const afterShopping = checkAndIncoming + item.shopping;
+
+        const checkDisplay = item.check >= 0 ? `<span class="text-green-600 font-semibold">${item.check.toFixed(2)}</span>` : `<span class="text-red-600 font-semibold">${item.check.toFixed(2)}</span>`;
+        const incomingDisplay = item.incoming !== 0 ? (item.incoming >= 0 ? `<span class="text-blue-600 font-semibold">${item.incoming.toFixed(2)}</span>` : `<span class="text-red-600 font-semibold">${item.incoming.toFixed(2)}</span>`) : '-';
+        const withdrawalDisplay = item.withdrawal !== 0 ? (item.withdrawal >= 0 ? `<span class="text-orange-600 font-semibold">${item.withdrawal.toFixed(2)}</span>` : `<span class="text-red-600 font-semibold">${item.withdrawal.toFixed(2)}</span>`) : '-';
+        const totalDisplay = checkAndIncoming >= 0 ? `<span class="text-purple-600 font-semibold">${checkAndIncoming.toFixed(2)}</span>` : `<span class="text-red-600 font-semibold">${checkAndIncoming.toFixed(2)}</span>`;
+        const shoppingDisplay = item.shopping !== 0 ? (item.shopping >= 0 ? `<span class="text-yellow-600 font-semibold">${item.shopping.toFixed(2)}</span>` : `<span class="text-red-600 font-semibold">${item.shopping.toFixed(2)}</span>`) : '-';
+        const afterShoppingDisplay = item.shopping !== 0 ? (afterShopping >= 0 ? `<span class="text-indigo-600 font-semibold">${afterShopping.toFixed(2)}</span>` : `<span class="text-red-600 font-semibold">${afterShopping.toFixed(2)}</span>`) : '-';
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="px-4 py-3 text-gray-900 font-medium">${item.name}</td>
+          <td class="px-4 py-3 text-right"><span class="inline-flex items-center gap-1">${checkDisplay}${totalBadge}</span></td>
+          <td class="px-4 py-3 text-right">${incomingDisplay}</td>
+          <td class="px-4 py-3 text-right">${withdrawalDisplay}</td>
+          <td class="px-4 py-3 text-right">${totalDisplay}</td>
+          <td class="px-4 py-3 text-right">${shoppingDisplay}</td>
+          <td class="px-4 py-3 text-right">${afterShoppingDisplay}</td>
+          <td class="px-4 py-3 text-gray-600">${item.unit}</td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      document.getElementById('inv-check-count').textContent = totalCheck.toFixed(0);
+      document.getElementById('inv-incoming-count').textContent = totalIncoming.toFixed(0);
+      document.getElementById('inv-withdrawal-count').textContent = totalWithdrawal.toFixed(0);
+      document.getElementById('inv-shopping-count').textContent = totalShopping.toFixed(0);
+
+      // Fade out badges after 1.5 seconds
+      setTimeout(() => {
+        document.querySelectorAll('.update-badge').forEach(badge => {
+          badge.style.opacity = '0';
+          badge.style.transition = 'opacity 0.5s ease-out';
+        });
+      }, 1500);
+
+      // Store current data for comparison next time
+      previousInventoryData = JSON.parse(JSON.stringify(inventoryData));
+
+      lucide.createIcons();
+    }
+
+    function renderSummary() {
+      const summaryData = {};
+      
+      allData.forEach(record => {
+        if (record.category === currentSummaryCategory && record.mode === currentMode) {
+          const key = `${record.item_name}|${record.unit}`;
+          if (!summaryData[key]) {
+            summaryData[key] = { name: record.item_name, unit: record.unit, total: 0 };
+          }
+          summaryData[key].total += parseFloat(record.quantity) || 0;
+        }
+      });
+
+      const tbody = document.getElementById('summary-tbody');
+      tbody.innerHTML = '';
+
+      if (Object.keys(summaryData).length === 0) {
+        const noData = document.createElement('tr');
+        noData.innerHTML = `<td colspan="3" class="px-4 py-6 text-center text-gray-500">ไม่มีข้อมูล</td>`;
+        tbody.appendChild(noData);
+        return;
+      }
+
+      Object.values(summaryData).forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="px-4 py-3 text-gray-900 font-medium">${item.name}</td>
+          <td class="px-4 py-3 text-right text-gray-700 font-semibold">${item.total.toFixed(2)}</td>
+          <td class="px-4 py-3 text-gray-600">${item.unit}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    document.getElementById('history-btn').addEventListener('click', () => {
+      document.getElementById('screen-mode').classList.add('hidden');
+      document.getElementById('screen-history').classList.remove('hidden');
+      renderHistory();
+      lucide.createIcons();
+    });
+
+    function renderHistory() {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - 15);
+
+      const recentData = allData.filter(record => {
+        if (!record.checked_at) return false;
+        const recordDate = new Date(record.checked_at);
+        return recordDate >= cutoffDate;
+      }).sort((a, b) => new Date(b.checked_at) - new Date(a.checked_at));
+
+      const list = document.getElementById('history-list');
+      list.innerHTML = '';
+
+      if (recentData.length === 0) {
+        const noData = document.createElement('div');
+        noData.className = 'text-center py-8 text-gray-500';
+        noData.textContent = 'ไม่มีข้อมูล';
+        list.appendChild(noData);
+        return;
+      }
+
+      const groupedByDate = {};
+      const dateOrder = [];
+      recentData.forEach(record => {
+        const date = new Date(record.checked_at);
+        const dateKey = date.toLocaleDateString('th-TH');
+        if (!groupedByDate[dateKey]) {
+          groupedByDate[dateKey] = {};
+          dateOrder.push(dateKey);
+        }
+        if (!groupedByDate[dateKey][record.category]) {
+          groupedByDate[dateKey][record.category] = [];
+        }
+        groupedByDate[dateKey][record.category].push(record);
+      });
+
+      dateOrder.forEach((dateKey) => {
+        const dateSection = document.createElement('div');
+        dateSection.className = 'mb-3';
+
+        const header = document.createElement('button');
+        header.type = 'button';
+        header.className = 'w-full bg-gradient-to-r from-blue-100 to-indigo-100 hover:from-blue-200 hover:to-indigo-200 px-4 py-3 rounded-lg border-l-4 border-blue-500 transition-all flex items-center justify-between text-left';
+        
+        const recordsInDate = Object.values(groupedByDate[dateKey]).flat();
+        const itemCount = recordsInDate.length;
+        header.innerHTML = `
+          <div class="flex-1">
+            <p class="font-semibold text-gray-800">${dateKey}</p>
+            <p class="text-xs text-gray-600 mt-0.5">${itemCount} รายการ</p>
+          </div>
+          <i data-lucide="chevron-down" class="w-5 h-5 text-gray-600 transition-transform duration-200"></i>
+        `;
+
+        const content = document.createElement('div');
+        content.className = 'hidden space-y-3 mt-3 ml-2';
+
+        const categoryOrder = ['dry', 'veg', 'meat'];
+        categoryOrder.forEach(catKey => {
+          const records = groupedByDate[dateKey][catKey];
+          if (!records || records.length === 0) return;
+
+          const catLabel = categories[catKey].label[currentLanguage];
+          const catSection = document.createElement('div');
+          catSection.className = 'border rounded-lg overflow-hidden';
+
+          const catHeader = document.createElement('button');
+          catHeader.type = 'button';
+          catHeader.className = 'w-full bg-gray-50 hover:bg-gray-100 px-4 py-2 flex items-center justify-between text-left transition-colors border-b';
+          catHeader.innerHTML = `
+            <div class="flex items-center gap-2">
+              <i data-lucide="${categories[catKey].icon}" class="w-4 h-4 text-gray-600"></i>
+              <p class="font-medium text-gray-700">${catLabel}</p>
+              <span class="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full">${records.length}</span>
+            </div>
+            <i data-lucide="chevron-down" class="w-4 h-4 text-gray-600 transition-transform duration-200"></i>
+          `;
+
+          const catContent = document.createElement('div');
+          catContent.className = 'hidden space-y-2 p-3 bg-white';
+
+          records.forEach(record => {
+            const timeStr = new Date(record.checked_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+            const modeLabel = record.mode === 'check' ? '✅ เช็ค' : '🛒 ซื้อ';
+            const modeBg = record.mode === 'check' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700';
+
+            const card = document.createElement('div');
+            card.className = 'bg-gray-50 rounded p-3 border border-gray-100 hover:bg-gray-100 transition-colors';
+            card.innerHTML = `
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <p class="font-semibold text-gray-900 text-sm">${record.item_name}</p>
+                  <p class="text-xs text-gray-600 mt-1">${record.quantity} ${record.unit}</p>
+                </div>
+                <div class="text-right space-y-1">
+                  <p class="text-xs font-medium text-gray-700">${record.checker_name}</p>
+                  <p class="text-xs px-2 py-0.5 rounded ${modeBg}">${modeLabel}</p>
+                  <p class="text-xs text-gray-400">${timeStr}</p>
+                </div>
+              </div>
+            `;
+            catContent.appendChild(card);
+          });
+
+          catHeader.addEventListener('click', () => {
+            catContent.classList.toggle('hidden');
+            const icon = catHeader.querySelector('[data-lucide="chevron-down"]');
+            icon.style.transform = catContent.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+          });
+
+          catSection.appendChild(catHeader);
+          catSection.appendChild(catContent);
+          content.appendChild(catSection);
+        });
+
+        header.addEventListener('click', () => {
+          content.classList.toggle('hidden');
+          const icon = header.querySelector('[data-lucide="chevron-down"]');
+          icon.style.transform = content.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+        });
+
+        dateSection.appendChild(header);
+        dateSection.appendChild(content);
+        list.appendChild(dateSection);
+      });
+
+      lucide.createIcons();
+    }
+
+    const dataHandler = {
+      onDataChanged(data) {
+        allData = data;
+      }
+    };
+
+    function updateDateTime() {
+      const now = new Date();
+      
+      let dateStr, timeStr;
+      if (currentLanguage === 'th') {
+        dateStr = now.toLocaleDateString('th-TH', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+      } else if (currentLanguage === 'en') {
+        dateStr = now.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+      } else if (currentLanguage === 'my') {
+        dateStr = now.toLocaleDateString('my-MM', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+      } else if (currentLanguage === 'ko') {
+        dateStr = now.toLocaleDateString('ko-KR', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+      } else {
+        dateStr = now.toLocaleDateString('th-TH', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+      }
+      
+      timeStr = now.toLocaleTimeString(currentLanguage === 'th' ? 'th-TH' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      
+      const dateDisplay = document.getElementById('date-display');
+      const timeDisplay = document.getElementById('time-display');
+      if (dateDisplay) dateDisplay.textContent = dateStr;
+      if (timeDisplay) timeDisplay.textContent = timeStr;
+    }
+
+    async function init() {
+      await window.dataSdk.init(dataHandler);
+
+      if (window.elementSdk) {
+        window.elementSdk.init({
+          defaultConfig: { app_title: 'Yeon Stock Checker' },
+          async onConfigChange(config) {
+            document.getElementById('app-title').textContent = config.app_title || 'Yeon Stock Checker';
+          },
+          mapToCapabilities: () => ({
+            recolorables: [],
+            borderables: [],
+            fontEditable: undefined,
+            fontSizeable: undefined
+          }),
+          mapToEditPanelValues: (config) => new Map([['app_title', config.app_title || 'Yeon Stock Checker']])
+        });
+      }
+
+      updateLanguageUI();
+      updateDateTime();
+      setInterval(updateDateTime, 1000);
+      document.getElementById('checker-name-input').focus();
+    }
+
+    init().catch(err => console.error('Init error:', err));
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9fd0b640e34d10d6',t:'MTc3OTAwMDg3OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+<script>
+const GOOGLE_SCRIPT_URL = "PASTE_YOUR_GOOGLE_APPS_SCRIPT_URL_HERE";
+
+// ส่งข้อมูลไป Google Sheets
+async function sendToGoogleSheets(data) {
+  try {
+    const response = await fetch(GOOGLE_SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+    return await response.json();
+  } catch (error) {
+    console.error("Google Sheets sync failed:", error);
+    return { success: false };
+  }
+}
+</script>
+
+</body>
+</html>

@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Yeon Stock Checker</title>
-  <script src="/_sdk/element_sdk.js"></script>
-  <script src="/_sdk/data_sdk.js"></script>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
   <style>
@@ -843,26 +841,22 @@
         const unit = document.getElementById(`unit-${i}`).value;
         
         if (qty) {
-          const result = await window.dataSdk.create({
-            category: currentCategory,
-            item_name: displayItems[i][currentLanguage],
-            quantity: qty,
-            unit: unit,
-            checker_name: currentCheckerName,
-            checked_at: new Date().toISOString(),
-            timestamp: Date.now(),
-            mode: currentMode,
-            sku: displayItems[i].sku
-          });
-
-          if (result.isError) {
-            console.error('Save error:', result.error);
-            localStorage.setItem('last_stock_backup', JSON.stringify({
-              savedAt: new Date().toISOString(),
-              item: displayItems[i][currentLanguage],
-              qty: qty
-            }));
-          }
+         await fetch("https://script.google.com/macros/s/AKfycbwvEFux6GHvCVbJecSnIy8Lg4H0kGYpJuKTnYgu5iCQzeTGa8JG6YTu8lxNFTftHzycFg/exec", {
+  method: "POST",
+  body: JSON.stringify({
+    category: currentCategory,
+    item_name: displayItems[i][currentLanguage],
+    quantity: qty,
+    unit: unit,
+    checker_name: currentCheckerName,
+    checked_at: new Date().toISOString(),
+    mode: currentMode,
+    sku: displayItems[i].sku
+  }),
+  headers: {
+    "Content-Type": "application/json"
+  }
+});
         }
       }
 
